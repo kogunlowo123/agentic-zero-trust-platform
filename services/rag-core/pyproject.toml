@@ -13,7 +13,7 @@ dependencies = [
     "numpy",
     "torch",
     "transformers",
-    "openai>=1.30",
+    "openai>=3.19.2",
     "azure-identity>=1.16",
     "azure-search-documents>=11.6",
     "tenacity>=8.3",
