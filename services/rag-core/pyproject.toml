@@ -7,7 +7,7 @@ dependencies = [
     "psycopg2-binary",
     "pgvector",
     "opensearch-py>=2.4",
-    "httpx>=0.27",
+    "httpx>=0.28.1",
     "pydantic>=2.7",
     "pydantic-settings>=2.3",
     "numpy",
