@@ -8,7 +8,7 @@ dependencies = [
     "pgvector",
     "opensearch-py>=2.4",
     "httpx>=0.27",
-    "pydantic>=2.7",
+    "pydantic>=2.13.5",
     "pydantic-settings>=2.3",
     "numpy",
     "torch",
