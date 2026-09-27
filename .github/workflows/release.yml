@@ -1,0 +1,180 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+
+env:
+  REGISTRY: ${{ secrets.ACR_REGISTRY }}
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  validate-tag:
+    name: Validate Release Tag
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.extract.outputs.version }}
+      is-prerelease: ${{ steps.extract.outputs.is-prerelease }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: extract
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#v}"
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          if [[ "$VERSION" == *"-rc"* ]] || [[ "$VERSION" == *"-beta"* ]] || [[ "$VERSION" == *"-alpha"* ]]; then
+            echo "is-prerelease=true" >> $GITHUB_OUTPUT
+          else
+            echo "is-prerelease=false" >> $GITHUB_OUTPUT
+          fi
+          echo "Releasing version: ${VERSION}"
+
+      - name: Verify VERSION file matches tag
+        run: |
+          FILE_VERSION=$(cat VERSION | tr -d '[:space:]')
+          TAG_VERSION="${{ steps.extract.outputs.version }}"
+          if [ "$FILE_VERSION" != "$TAG_VERSION" ]; then
+            echo "ERROR: VERSION file (${FILE_VERSION}) does not match tag (${TAG_VERSION})"
+            exit 1
+          fi
+          echo "VERSION file matches tag: ${FILE_VERSION}"
+
+  run-tests:
+    name: Run Full Test Suite
+    runs-on: ubuntu-latest
+    needs: [validate-tag]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python Environment
+        uses: ./.github/actions/setup-python
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Run lint
+        run: |
+          uv run ruff check . --output-format=github
+          uv run ruff format --check .
+          uv run mypy services/ --ignore-missing-imports --strict
+
+      - name: Run unit tests
+        run: uv run pytest tests/unit/ -v --cov=services --cov-fail-under=80
+        env:
+          ENVIRONMENT: test
+          JWT_SECRET_KEY: test-secret-key-minimum-32-characters-long
+          JWT_ALGORITHM: HS256
+
+  build-and-push:
+    name: Build and Push (${{ matrix.service.name }})
+    runs-on: ubuntu-latest
+    needs: [validate-tag, run-tests]
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - name: api
+            dockerfile: services/api/Dockerfile
+            context: .
+          - name: rag-core
+            dockerfile: services/rag-core/Dockerfile
+            context: .
+          - name: agent-runtime
+            dockerfile: services/agent-runtime/Dockerfile
+            context: .
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build and push ${{ matrix.service.name }}
+        uses: ./.github/actions/docker-build-push
+        with:
+          image-name: agentic-zero-trust/${{ matrix.service.name }}
+          dockerfile: ${{ matrix.service.dockerfile }}
+          context: ${{ matrix.service.context }}
+          registry: ${{ env.REGISTRY }}
+          registry-username: ${{ secrets.ACR_USERNAME }}
+          registry-password: ${{ secrets.ACR_PASSWORD }}
+          image-tag: ${{ needs.validate-tag.outputs.version }}
+          build-args: |
+            VERSION=${{ needs.validate-tag.outputs.version }}
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            GIT_SHA=${{ github.sha }}
+
+  update-helm-chart:
+    name: Update Helm Chart Version
+    runs-on: ubuntu-latest
+    needs: [validate-tag, build-and-push]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Helm chart version
+        run: |
+          VERSION="${{ needs.validate-tag.outputs.version }}"
+          if [ -f deploy/helm/agentic-zero-trust/Chart.yaml ]; then
+            sed -i "s/^version:.*/version: ${VERSION}/" deploy/helm/agentic-zero-trust/Chart.yaml
+            sed -i "s/^appVersion:.*/appVersion: \"${VERSION}\"/" deploy/helm/agentic-zero-trust/Chart.yaml
+            echo "Updated Helm chart to version ${VERSION}"
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add deploy/helm/agentic-zero-trust/Chart.yaml
+            git diff --staged --quiet || git commit -m "chore: bump Helm chart version to ${VERSION} [skip ci]"
+            git push origin HEAD:main
+          else
+            echo "Helm chart not found at deploy/helm/agentic-zero-trust/Chart.yaml — skipping."
+          fi
+
+  create-github-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [validate-tag, build-and-push]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract changelog section for this version
+        id: changelog
+        run: |
+          VERSION="${{ needs.validate-tag.outputs.version }}"
+          # Extract section between this version header and the next version header
+          NOTES=$(awk "/^## \[${VERSION}\]/,/^## \[/" CHANGELOG.md \
+            | grep -v "^## \[" \
+            | sed '/^$/d' \
+            | head -100)
+          if [ -z "$NOTES" ]; then
+            NOTES="See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details."
+          fi
+          echo "NOTES<<RELEASE_NOTES_EOF" >> $GITHUB_OUTPUT
+          echo "$NOTES" >> $GITHUB_OUTPUT
+          echo "RELEASE_NOTES_EOF" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Release v${{ needs.validate-tag.outputs.version }}"
+          body: |
+            ## What's Changed
+
+            ${{ steps.changelog.outputs.NOTES }}
+
+            ## Docker Images
+
+            Images published to `${{ env.REGISTRY }}`:
+            - `agentic-zero-trust/api:${{ needs.validate-tag.outputs.version }}`
+            - `agentic-zero-trust/rag-core:${{ needs.validate-tag.outputs.version }}`
+            - `agentic-zero-trust/agent-runtime:${{ needs.validate-tag.outputs.version }}`
+
+            **Full Changelog**: https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md
+          draft: false
+          prerelease: ${{ needs.validate-tag.outputs.is-prerelease == 'true' }}
+          generate_release_notes: false
+          make_latest: ${{ needs.validate-tag.outputs.is-prerelease == 'false' }}

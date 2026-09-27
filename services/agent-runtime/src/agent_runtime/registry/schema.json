@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "agent_id": {"type": "string"},
+    "name": {"type": "string"},
+    "tier": {"type": "string", "enum": ["T0", "T1", "T2"]},
+    "max_tool_calls": {"type": "integer"},
+    "allowed_tools": {"type": "array", "items": {"type": "string"}},
+    "max_budget_usd": {"type": "number"},
+    "opa_policy_path": {"type": "string"}
+  },
+  "required": ["agent_id", "name", "tier"]
+}

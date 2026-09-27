@@ -1,0 +1,102 @@
+version: 2
+
+updates:
+  # API service Python dependencies
+  - package-ecosystem: pip
+    directory: /services/api
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: UTC
+    assignees:
+      - kogunlowo123
+    labels:
+      - dependencies
+      - python
+    open-pull-requests-limit: 10
+    groups:
+      production-dependencies:
+        dependency-type: production
+      development-dependencies:
+        dependency-type: development
+
+  # RAG Core service Python dependencies
+  - package-ecosystem: pip
+    directory: /services/rag-core
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: UTC
+    assignees:
+      - kogunlowo123
+    labels:
+      - dependencies
+      - python
+    open-pull-requests-limit: 10
+
+  # Agent Runtime service Python dependencies
+  - package-ecosystem: pip
+    directory: /services/agent-runtime
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: UTC
+    assignees:
+      - kogunlowo123
+    labels:
+      - dependencies
+      - python
+    open-pull-requests-limit: 10
+
+  # Terraform Azure infrastructure dependencies
+  - package-ecosystem: terraform
+    directory: /infra/azure
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: UTC
+    assignees:
+      - kogunlowo123
+    labels:
+      - dependencies
+      - terraform
+      - infrastructure
+    open-pull-requests-limit: 5
+
+  # Docker base image updates
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: UTC
+    assignees:
+      - kogunlowo123
+    labels:
+      - dependencies
+      - docker
+    open-pull-requests-limit: 5
+
+  # GitHub Actions workflow dependencies
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: UTC
+    assignees:
+      - kogunlowo123
+    labels:
+      - dependencies
+      - github-actions
+    open-pull-requests-limit: 10
+    groups:
+      github-actions:
+        patterns:
+          - "*"

@@ -1,0 +1,6 @@
+routes:
+  - path: "/v1/chat/completions"
+    primary: azure_openai
+    fallback: vertex_ai
+    budget_limit_usd: 100.0
+    require_audit: true

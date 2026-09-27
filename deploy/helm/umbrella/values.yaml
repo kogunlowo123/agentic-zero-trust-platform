@@ -1,0 +1,24 @@
+global:
+  environment: production
+  imageRegistry: "acrztplatform.azurecr.io"
+  imagePullPolicy: IfNotPresent
+
+api:
+  replicaCount: 3
+  image:
+    repository: "acrztplatform.azurecr.io/api"
+    tag: "latest"
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 15
+
+agent-runtime:
+  replicaCount: 2
+  image:
+    repository: "acrztplatform.azurecr.io/agent-runtime"
+    tag: "latest"
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 8

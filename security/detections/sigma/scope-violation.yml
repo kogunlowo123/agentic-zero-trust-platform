@@ -1,0 +1,25 @@
+title: Agent Tool Scope Violation
+id: b8d4f3a2-5e9c-4b02-a673-ge4f32b01d5c
+status: stable
+description: >
+  Detects when an AI agent attempts to call a tool that is not in its declared
+  allowed_tools scope, indicating a potential jailbreak or misconfiguration.
+logsource:
+  category: application
+  product: zero-trust-platform
+  service: agent-runtime
+detection:
+  selection:
+    EventType: "tool.call.attempt"
+    violation: true
+    reason|contains: "TOOL_NOT_IN_SCOPE"
+  condition: selection
+fields:
+  - agent_id
+  - principal
+  - tool_name
+  - allowed_tools
+  - session_id
+level: high
+falsepositives:
+  - Agent profile updates not yet propagated

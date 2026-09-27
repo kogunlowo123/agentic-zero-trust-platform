@@ -1,0 +1,124 @@
+name: Bug Report
+description: Report a bug in the Agentic Zero Trust Platform
+title: "[Bug]: "
+labels:
+  - bug
+  - needs-triage
+assignees:
+  - kogunlowo123
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to report a bug. Please fill out the form below as completely as possible.
+        For **security vulnerabilities**, use the [Private Security Advisory](../../security/advisories/new) instead.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of the bug.
+      placeholder: Describe what happened...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Step-by-step instructions to reproduce the issue.
+      placeholder: |
+        1. Send a POST request to /api/v1/policy/evaluate with payload...
+        2. Observe the response...
+        3. Expected X but got Y
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: A clear description of what you expected to happen.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: A clear description of what actually happened.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Environment
+      description: Which environment did this occur in?
+      options:
+        - Development (local docker-compose)
+        - Staging
+        - Production
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Platform Version
+      description: The version of the platform (check VERSION file or image tag).
+      placeholder: "e.g. 0.1.0"
+    validations:
+      required: false
+
+  - type: dropdown
+    id: affected_component
+    attributes:
+      label: Affected Component
+      description: Which component is affected?
+      options:
+        - API Gateway
+        - Policy Engine (OPA)
+        - Identity Service
+        - Agent Runtime
+        - RAG Core
+        - OpenSearch
+        - Authentication / JWT
+        - Database (PostgreSQL)
+        - Observability / OpenTelemetry
+        - Unknown
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Logs
+      description: Paste any relevant log output here. Redact any sensitive data.
+      render: shell
+    validations:
+      required: false
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: How severe is this bug?
+      options:
+        - Low - Minor inconvenience, workaround available
+        - Medium - Significant impact, workaround available
+        - High - Major functionality broken, no workaround
+        - Critical - Platform unavailable or data loss
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: Confirmation
+      options:
+        - label: I have searched for existing issues before filing this report.
+          required: true
+        - label: I have redacted all sensitive information (credentials, PII) from this report.
+          required: true

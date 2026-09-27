@@ -1,0 +1,22 @@
+agents:
+  - agent_id: policy-enforcer-v1
+    name: Policy Enforcer
+    tier: T1
+    max_tool_calls: 20
+    allowed_tools: [rag_search, policy_query]
+    max_budget_usd: 0.50
+    opa_policy_path: zerotrust/agents/policy_enforcer
+  - agent_id: posture-assessor-v1
+    name: Posture Assessor
+    tier: T0
+    max_tool_calls: 15
+    allowed_tools: [posture_check, rag_search]
+    max_budget_usd: 0.25
+    opa_policy_path: zerotrust/agents/posture_assessor
+  - agent_id: access-reviewer-v1
+    name: Access Reviewer
+    tier: T1
+    max_tool_calls: 25
+    allowed_tools: [rag_search, policy_query, posture_check]
+    max_budget_usd: 1.00
+    opa_policy_path: zerotrust/agents/access_reviewer

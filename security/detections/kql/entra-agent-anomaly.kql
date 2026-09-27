@@ -1,0 +1,36 @@
+// Detect anomalous sign-in patterns for zero trust platform agent identities
+// Alert: Multiple failures from different IPs or high failure count
+let threshold_failures = 5;
+let threshold_ips = 3;
+let lookback = 5m;
+SigninLogs
+| where TimeGenerated >= ago(lookback)
+| where AppDisplayName contains "zero-trust"
+    or UserPrincipalName contains "svc-zt-"
+    or UserPrincipalName contains "agent-"
+| summarize
+    FailureCount = countif(ResultType != "0"),
+    SuccessCount = countif(ResultType == "0"),
+    DistinctIPs = dcount(IPAddress),
+    IPList = make_set(IPAddress, 10),
+    ErrorCodes = make_set(ResultType, 5)
+    by UserPrincipalName, bin(TimeGenerated, 5m)
+| where FailureCount > threshold_failures or DistinctIPs > threshold_ips
+| extend
+    Severity = case(
+        DistinctIPs > 5 or FailureCount > 20, "High",
+        DistinctIPs > 3 or FailureCount > 10, "Medium",
+        "Low"
+    ),
+    AlertTitle = strcat("Agent Anomaly: ", UserPrincipalName)
+| project
+    TimeGenerated,
+    UserPrincipalName,
+    FailureCount,
+    SuccessCount,
+    DistinctIPs,
+    IPList,
+    ErrorCodes,
+    Severity,
+    AlertTitle
+| order by Severity asc, FailureCount desc

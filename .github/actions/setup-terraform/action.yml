@@ -1,0 +1,57 @@
+name: Setup Terraform
+description: >
+  Sets up Terraform 1.8, verifies formatting, initialises the working directory
+  without a backend (for validation), and validates the configuration.
+
+inputs:
+  terraform-version:
+    description: Terraform version to install
+    required: false
+    default: "1.8.0"
+  working-directory:
+    description: Directory containing the Terraform configuration to validate
+    required: false
+    default: "./infra/azure"
+  format-check:
+    description: Whether to run terraform fmt -check
+    required: false
+    default: "true"
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Terraform ${{ inputs.terraform-version }}
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ inputs.terraform-version }}
+
+    - name: Terraform version
+      shell: bash
+      run: terraform version
+
+    - name: Terraform Format Check
+      if: inputs.format-check == 'true'
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        echo "Checking Terraform formatting..."
+        terraform fmt -check -recursive -diff
+        echo "Formatting check passed."
+
+    - name: Terraform Init (validation only, no backend)
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        echo "Initialising Terraform for validation (no backend)..."
+        terraform init -backend=false -input=false
+
+    - name: Terraform Validate
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        echo "Validating Terraform configuration..."
+        terraform validate
+        echo "Validation passed."

@@ -1,0 +1,15 @@
+apiVersion: v2
+name: api
+description: Agentic Zero Trust Platform — API Service
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - zero-trust
+  - policy
+  - security
+  - opa
+home: https://github.com/kogunlowo123/agentic-zero-trust-platform
+maintainers:
+  - name: kogunlowo123
+    url: https://github.com/kogunlowo123

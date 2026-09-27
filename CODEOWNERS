@@ -1,0 +1,23 @@
+# CODEOWNERS — every path is owned by @kogunlowo123
+# See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner for everything in the repository
+*                   @kogunlowo123
+
+# Infrastructure (Terraform, Helm, cloud configs)
+/infra/             @kogunlowo123
+
+# Service source code
+/services/          @kogunlowo123
+
+# Identity and authentication
+/identity/          @kogunlowo123
+
+# Security policies and OPA rules
+/security/          @kogunlowo123
+
+# Deployment manifests
+/deploy/            @kogunlowo123
+
+# Test suites
+/tests/             @kogunlowo123

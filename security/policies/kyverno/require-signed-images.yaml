@@ -1,0 +1,32 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-signed-images
+  annotations:
+    policies.kyverno.io/title: Require Signed Container Images
+    policies.kyverno.io/category: Zero Trust Supply Chain
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/description: >-
+      All container images in the agentic-zero-trust namespace must be signed using
+      Sigstore keyless signing from GitHub Actions. Unsigned images are rejected.
+spec:
+  validationFailureAction: Enforce
+  background: false
+  rules:
+    - name: verify-image-signature
+      match:
+        any:
+          - resources:
+              kinds: [Pod]
+              namespaces: [agentic-zero-trust]
+      verifyImages:
+        - imageReferences:
+            - "*.azurecr.io/*"
+          attestors:
+            - count: 1
+              entries:
+                - keyless:
+                    subject: "https://github.com/kogunlowo123/agentic-zero-trust-platform/.github/workflows/*.yml@refs/heads/main"
+                    issuer: "https://token.actions.githubusercontent.com"
+                    rekor:
+                      url: "https://rekor.sigstore.dev"

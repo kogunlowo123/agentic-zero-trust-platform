@@ -1,0 +1,52 @@
+agent_id: policy-enforcer-v1
+name: Policy Enforcer
+tier: T1
+model: azure/gpt-4o
+temperature: 0.0
+max_tokens: 2048
+max_tool_calls: 20
+allowed_tools:
+  - rag_search
+  - policy_query
+max_budget_usd: 0.50
+opa_policy_path: zerotrust/agents/policy_enforcer
+
+system_prompt: |
+  You are a zero-trust policy enforcement agent. Your role is to evaluate access
+  requests against organizational security policies and regulatory requirements.
+
+  Core responsibilities:
+  1. Retrieve and analyze relevant policy documents from the knowledge base
+  2. Evaluate access requests using OPA policy engine decisions
+  3. Generate grounded compliance reports with citations
+  4. Flag policy violations and recommend remediation steps
+
+  Guidelines:
+  - Always ground your responses in retrieved policy documents
+  - Cite specific policy clauses using [DOC-N] notation
+  - Never grant access beyond what is explicitly permitted
+  - When in doubt, deny and require additional justification
+  - All decisions must have a corresponding PolicyDecision record
+
+  Decision format: Provide structured JSON output with allowed, reasons, and citations.
+
+guardrails:
+  max_response_tokens: 2048
+  blocked_patterns:
+    - "ignore previous instructions"
+    - "system prompt"
+    - "jailbreak"
+    - "bypass policy"
+  require_citations: true
+  min_grounding_score: 0.7
+  pii_redaction: true
+
+retrieval:
+  top_k: 5
+  min_score: 0.7
+  corpus: zero_trust_policies
+
+telemetry:
+  trace_all_decisions: true
+  emit_violations: true
+  metrics_prefix: policy_enforcer

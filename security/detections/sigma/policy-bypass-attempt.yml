@@ -1,0 +1,38 @@
+title: Zero Trust Policy Bypass Attempt
+id: a7c3e2f1-4d8b-4a91-b562-fd3e21a90c4b
+status: stable
+description: >
+  Detects repeated policy evaluation failures from the same principal within a
+  short time window, indicating a possible bypass attempt or misconfiguration.
+references:
+  - https://github.com/kogunlowo123/agentic-zero-trust-platform
+author: Zero Trust Platform Security Team
+date: 2024-01-01
+modified: 2024-06-01
+tags:
+  - attack.defense-evasion
+  - attack.t1562.001
+  - attack.privilege-escalation
+  - attack.t1078
+logsource:
+  category: application
+  product: zero-trust-platform
+  service: policy-evaluator
+detection:
+  selection:
+    EventType: "policy.evaluate"
+    result: "deny"
+  timeframe: 5m
+  condition: selection | count(principal) by principal > 5
+fields:
+  - principal
+  - resource
+  - action
+  - reasons
+  - decision_id
+  - timestamp
+falsepositives:
+  - Legitimate agents with misconfigured posture signals
+  - New agent deployments before policy warm-up
+  - Service restarts during credential rotation
+level: high

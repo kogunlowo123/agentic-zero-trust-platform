@@ -1,0 +1,57 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: "0.0.0.0:4317"
+      http:
+        endpoint: "0.0.0.0:4318"
+
+processors:
+  batch:
+    timeout: 1s
+    send_batch_size: 1024
+    send_batch_max_size: 2048
+  memory_limiter:
+    limit_mib: 512
+    spike_limit_mib: 128
+    check_interval: 5s
+  resource:
+    attributes:
+      - key: service.namespace
+        value: "agentic-zero-trust"
+        action: insert
+      - key: deployment.environment
+        from_attribute: ENVIRONMENT
+        action: insert
+  transform/scrub_pii:
+    log_statements:
+      - context: log
+        statements:
+          - replace_pattern(attributes["message"], "Bearer [A-Za-z0-9._-]+", "Bearer [REDACTED]")
+          - replace_pattern(attributes["message"], "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}", "[EMAIL_REDACTED]")
+
+exporters:
+  otlp/azure:
+    endpoint: "${APPLICATIONINSIGHTS_CONNECTION_STRING}"
+    tls:
+      insecure: false
+  logging:
+    loglevel: warn
+
+service:
+  telemetry:
+    logs:
+      level: warn
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, resource]
+      exporters: [otlp/azure]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, resource]
+      exporters: [otlp/azure]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, resource, transform/scrub_pii]
+      exporters: [otlp/azure, logging]

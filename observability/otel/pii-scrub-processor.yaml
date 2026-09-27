@@ -1,0 +1,19 @@
+# PII Scrubbing Transform Processor Configuration
+# Applied to all pipelines before export to Azure Monitor
+processors:
+  transform/pii_scrub:
+    error_mode: ignore
+    log_statements:
+      - context: log
+        statements:
+          # Redact Bearer tokens (JWTs)
+          - replace_pattern(attributes["http.request.header.authorization"], "^Bearer .+$", "Bearer [REDACTED]")
+          # Redact email addresses
+          - replace_pattern(body, "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}", "[EMAIL_REDACTED]")
+          # Redact Azure subscription IDs
+          - replace_pattern(body, "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", "[UUID_REDACTED]")
+    trace_statements:
+      - context: span
+        statements:
+          - replace_pattern(attributes["http.request.header.authorization"], "^Bearer .+$", "Bearer [REDACTED]")
+          - replace_pattern(attributes["db.statement"], "password\\s*=\\s*'[^']+'", "password='[REDACTED]'")

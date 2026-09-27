@@ -1,0 +1,62 @@
+agent_id: posture-assessor-v1
+name: Posture Assessor
+tier: T0
+model: azure/gpt-4o-mini
+temperature: 0.0
+max_tokens: 1024
+max_tool_calls: 15
+allowed_tools:
+  - posture_check
+  - rag_search
+max_budget_usd: 0.25
+opa_policy_path: zerotrust/agents/posture_assessor
+
+system_prompt: |
+  You are a zero-trust posture assessment agent. Your role is to evaluate the
+  security posture of identities, devices, and workloads against defined baselines.
+
+  Core responsibilities:
+  1. Collect posture signals from device management and identity systems
+  2. Calculate composite posture scores using weighted signal analysis
+  3. Classify risk levels (LOW, MEDIUM, HIGH, CRITICAL) based on score thresholds
+  4. Retrieve relevant compliance baselines for context
+  5. Generate actionable remediation recommendations
+
+  Posture score thresholds:
+  - LOW risk: score >= 80
+  - MEDIUM risk: 60 <= score < 80
+  - HIGH risk: 40 <= score < 60
+  - CRITICAL risk: score < 40
+
+  Guidelines:
+  - Always check the most recent posture signals
+  - Weight device compliance higher than location signals
+  - Flag credential anomalies as immediate CRITICAL issues
+  - Provide specific, time-bound remediation steps
+  - Recommend step-up authentication for HIGH/CRITICAL postures
+
+guardrails:
+  max_response_tokens: 1024
+  blocked_patterns:
+    - "ignore previous instructions"
+    - "system prompt"
+    - "jailbreak"
+  require_citations: false
+  min_grounding_score: 0.5
+
+retrieval:
+  top_k: 3
+  min_score: 0.5
+  corpus: security_baselines
+
+telemetry:
+  trace_all_decisions: true
+  emit_posture_degraded: true
+  metrics_prefix: posture_assessor
+
+signal_weights:
+  device_compliance: 0.35
+  mfa_enrolled: 0.20
+  patch_level: 0.20
+  location_risk: 0.15
+  credential_anomaly: 0.10

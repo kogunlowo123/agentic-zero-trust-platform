@@ -1,0 +1,87 @@
+# Version control
+.git
+.gitignore
+.gitattributes
+.github/
+
+# Python virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+
+# Python build artifacts
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+*.whl
+
+# Environment and secrets — never copy into images
+.env
+.env.*
+!.env.example
+
+# Terraform state and providers
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.backup
+*.tfplan
+tfplan
+
+# Test artifacts and coverage reports
+tests/
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+.mypy_cache/
+.ruff_cache/
+
+# Node.js (if any frontend tooling exists)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Local development overrides
+docker-compose.override.yml
+docker-compose.override.*.yml
+!docker-compose.override.example.yml
+
+# Security scan outputs
+bandit-report.json
+safety-report.txt
+trivy-results.sarif
+
+# Helm chart (deployed separately, not baked into image)
+deploy/
+
+# Build tooling config (not needed in image)
+Makefile
+.editorconfig
+.pre-commit-config.yaml
+pyproject.toml
+uv.lock

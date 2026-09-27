@@ -1,0 +1,117 @@
+name: Security Finding
+description: Report a non-critical security finding. For CRITICAL/HIGH severity, use the Private Security Advisory.
+title: "[Security]: "
+labels:
+  - security
+assignees:
+  - kogunlowo123
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Security Finding Report
+
+        > **Important:** For **CRITICAL** or **HIGH** severity findings, do NOT use this public issue form.
+        > Instead, use the [Private Security Advisory](../../security/advisories/new) to report privately.
+        > This protects users while the vulnerability is being remediated.
+        >
+        > See [SECURITY.md](../../SECURITY.md) for the full responsible disclosure policy.
+
+  - type: dropdown
+    id: finding_type
+    attributes:
+      label: Finding Type
+      description: Select the category that best describes the finding.
+      options:
+        - Authentication Bypass
+        - Authorization Flaw / Policy Bypass
+        - Injection Vulnerability (SQL, command, prompt)
+        - Insecure Configuration
+        - Dependency Vulnerability (CVE)
+        - Sensitive Data Exposure
+        - Information Disclosure
+        - Denial of Service
+        - Cryptographic Weakness
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: |
+        Select the severity. Use the Private Security Advisory for Critical and High findings.
+      options:
+        - "Informational - No direct risk"
+        - "Low - Minimal exploitability or impact"
+        - "Medium - Exploitable with limited impact"
+        - "High - Use Private Security Advisory instead"
+        - "Critical - Use Private Security Advisory instead"
+    validations:
+      required: true
+
+  - type: input
+    id: affected_component
+    attributes:
+      label: Affected Component
+      description: Which service, module, or file is affected?
+      placeholder: "e.g. services/api/routers/policy.py, OPA policies, JWT handling"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Finding Description
+      description: Describe the finding clearly. Include what the vulnerability is and where it exists.
+      placeholder: |
+        The /api/v1/agents/{id} endpoint does not verify that the requesting principal
+        owns the agent resource before returning its configuration...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce (if applicable)
+      description: If this is an exploitable finding, provide minimal reproduction steps.
+      placeholder: |
+        1. Authenticate as agent principal A
+        2. Send GET /api/v1/agents/{id_of_agent_owned_by_B}
+        3. Observe full agent config returned without authorization error
+    validations:
+      required: false
+
+  - type: input
+    id: cvss_score
+    attributes:
+      label: CVSS Score (if calculated)
+      description: Provide the CVSS v3.1 base score if you have calculated one.
+      placeholder: "e.g. 5.4 (Medium)"
+    validations:
+      required: false
+
+  - type: textarea
+    id: remediation
+    attributes:
+      label: Suggested Remediation Steps
+      description: If you have a suggested fix or mitigation, describe it here.
+      placeholder: |
+        Add a resource ownership check in the route handler:
+        verify that request.principal == agent.owner_principal before returning data.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: disclosure
+    attributes:
+      label: Responsible Disclosure Agreement
+      options:
+        - label: I agree to follow responsible disclosure practices and not publicly disclose details until a patch is available.
+          required: true
+        - label: I confirm this finding has a severity of Medium or below and is appropriate for this public issue tracker.
+          required: true
+        - label: I have not included exploit code or proof-of-concept that could directly harm users.
+          required: true

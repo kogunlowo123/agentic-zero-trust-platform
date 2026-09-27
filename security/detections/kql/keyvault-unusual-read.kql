@@ -1,0 +1,32 @@
+// Detect unusual Azure Key Vault secret read patterns
+// Baseline: normal agents read < 20 secrets/hour from single IP
+let vault_name = "kv-zero-trust-prod";
+let lookback = 1h;
+let max_reads_per_hour = 50;
+AzureDiagnostics
+| where TimeGenerated >= ago(lookback)
+| where ResourceType == "VAULTS"
+| where OperationName == "SecretGet"
+| where Resource =~ vault_name
+| where ResultType == "Success"
+| summarize
+    ReadCount = count(),
+    DistinctSecrets = dcount(id_s),
+    DistinctIPs = dcount(CallerIPAddress),
+    SecretList = make_set(id_s, 20)
+    by CallerObjectId, bin(TimeGenerated, 1h)
+| where ReadCount > max_reads_per_hour or DistinctSecrets > 30
+| extend
+    Severity = case(
+        ReadCount > 200 or DistinctSecrets > 50, "High",
+        ReadCount > 100 or DistinctSecrets > 20, "Medium",
+        "Low"
+    )
+| join kind=leftouter (
+    AzureActivity
+    | where TimeGenerated >= ago(lookback)
+    | where OperationNameValue contains "KeyVault"
+    | summarize LastActivity = max(TimeGenerated) by Caller
+) on $left.CallerObjectId == $right.Caller
+| project TimeGenerated, CallerObjectId, ReadCount, DistinctSecrets, DistinctIPs, SecretList, Severity
+| order by ReadCount desc

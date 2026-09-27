@@ -1,0 +1,89 @@
+# docker-compose.override.example.yml
+#
+# Local development overrides for docker-compose.yml.
+# To use this file, copy it:
+#
+#   cp docker-compose.override.example.yml docker-compose.override.yml
+#
+# Docker Compose automatically merges docker-compose.override.yml on top
+# of docker-compose.yml when you run `docker-compose up`.
+# The override file is intentionally excluded from git via .gitignore.
+
+version: "3.9"
+
+services:
+  api:
+    # Mount the source directory for hot-reload in development.
+    # This maps your local code into the container so changes are reflected
+    # immediately without rebuilding the image.
+    volumes:
+      - ./services/api:/app/services/api:cached
+      - ./services/shared:/app/services/shared:cached
+      - ./policies:/app/policies:cached
+    environment:
+      - DEBUG=true
+      - RELOAD=true
+      - LOG_LEVEL=DEBUG
+      - ENVIRONMENT=development
+      # Disable auth requirements for local testing (never in production)
+      - DEV_SKIP_AUTH=false
+    # Expose an additional port for debugger attachment (e.g., VS Code debugpy)
+    ports:
+      - "8000:8000"
+      - "5678:5678"
+
+  postgres:
+    # Expose postgres directly for local database clients (DBeaver, psql, etc.)
+    ports:
+      - "5432:5432"
+    environment:
+      # Use simpler credentials locally
+      POSTGRES_PASSWORD: devpassword
+
+  opensearch:
+    # Reduce memory usage for local development
+    environment:
+      - OPENSEARCH_JAVA_OPTS=-Xms256m -Xmx256m
+      - discovery.type=single-node
+      - DISABLE_SECURITY_PLUGIN=true
+    # Expose OpenSearch Dashboards port for local UI access
+    ports:
+      - "9200:9200"
+
+  redis:
+    # Expose Redis directly for local inspection with redis-cli or RedisInsight
+    ports:
+      - "6379:6379"
+
+  opa:
+    # Enable OPA decision logging in development for easier policy debugging
+    command:
+      - run
+      - --server
+      - --addr
+      - 0.0.0.0:8181
+      - --log-format
+      - text
+      - --log-level
+      - debug
+      - --decision-log-console
+      - /policies
+    ports:
+      - "8181:8181"
+
+  # Add OpenSearch Dashboards for local visualization of vector store data
+  opensearch-dashboards:
+    image: opensearchproject/opensearch-dashboards:2.13.0
+    container_name: zt-opensearch-dashboards
+    ports:
+      - "5601:5601"
+    environment:
+      - OPENSEARCH_HOSTS=http://opensearch:9200
+      - DISABLE_SECURITY_DASHBOARDS_PLUGIN=true
+    depends_on:
+      opensearch:
+        condition: service_healthy
+    networks:
+      - zero-trust-net
+    profiles:
+      - dashboards

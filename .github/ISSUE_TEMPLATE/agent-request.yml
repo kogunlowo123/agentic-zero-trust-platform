@@ -1,0 +1,123 @@
+name: Agent Capability Request
+description: Request a new AI agent capability or integration for the Zero Trust Platform
+title: "[Agent Request]: "
+labels:
+  - agent-request
+  - enhancement
+assignees:
+  - kogunlowo123
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form to request a new AI agent capability. All agent requests are subject to
+        security review and must align with the Zero Trust principles of the platform.
+        Agents operate under strict policy controls and require explicit access grants.
+
+  - type: dropdown
+    id: agent_type
+    attributes:
+      label: Agent Type
+      description: What category of agent is being requested?
+      options:
+        - Data Analysis Agent
+        - Code Review Agent
+        - Security Scanning Agent
+        - Workflow Automation Agent
+        - RAG / Knowledge Retrieval Agent
+        - System Administration Agent
+        - Compliance Monitoring Agent
+        - Custom Agent (describe below)
+    validations:
+      required: true
+
+  - type: textarea
+    id: use_case
+    attributes:
+      label: Use Case Description
+      description: Describe what the agent will do and what business problem it solves.
+      placeholder: |
+        The agent will analyze security logs from OpenSearch and generate daily
+        risk summaries for the security operations team...
+    validations:
+      required: true
+
+  - type: textarea
+    id: policy_requirements
+    attributes:
+      label: Policy Requirements
+      description: |
+        List the resources and actions the agent needs access to.
+        Be as specific as possible — this directly informs OPA policy authoring.
+      placeholder: |
+        - READ access to OpenSearch index: security-logs-*
+        - READ access to PostgreSQL table: audit_events
+        - WRITE access to PostgreSQL table: risk_summaries
+        - NO access to credential stores or secrets
+    validations:
+      required: true
+
+  - type: dropdown
+    id: access_tier
+    attributes:
+      label: Required Access Tier
+      description: |
+        Select the minimum access tier required.
+        Higher tiers require additional security review and approval.
+      options:
+        - "Tier 1 - Read Only (lowest privilege, minimal review)"
+        - "Tier 2 - Read/Write Limited (standard review required)"
+        - "Tier 3 - Administrative (extended review, CISO sign-off)"
+        - "Tier 4 - Privileged (highest risk, full security audit required)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: justification
+    attributes:
+      label: Business Justification
+      description: Why is this agent needed? What value does it deliver?
+      placeholder: |
+        Currently, the security team spends 3 hours per day manually reviewing
+        logs. This agent would reduce that to 15 minutes and improve response time
+        to security incidents by 80%...
+    validations:
+      required: true
+
+  - type: input
+    id: duration
+    attributes:
+      label: Maximum Session Duration (minutes)
+      description: How long does a single agent session need to run at most?
+      placeholder: "e.g. 60"
+    validations:
+      required: true
+
+  - type: textarea
+    id: data_classification
+    attributes:
+      label: Data Classification
+      description: What classification of data will the agent handle?
+      placeholder: |
+        - Handles: Internal security logs (Confidential)
+        - Does NOT handle: PII, payment data, credentials
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: security_acknowledgments
+    attributes:
+      label: Security Acknowledgments
+      description: Please confirm you understand the security requirements.
+      options:
+        - label: I understand this agent will operate under Zero Trust policies and every action will be evaluated by OPA.
+          required: true
+        - label: Access granted to this agent will be time-limited and logged.
+          required: true
+        - label: All agent actions will be emitted as audit events to the SIEM.
+          required: true
+        - label: I have identified the minimum set of permissions required (least privilege).
+          required: true
+        - label: A human reviewer will approve sensitive actions above the configured confidence threshold.
+          required: false

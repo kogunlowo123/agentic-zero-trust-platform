@@ -1,0 +1,93 @@
+replicaCount: 1
+
+image:
+  repository: acrztplatform.azurecr.io/agent-runtime
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8001
+  annotations: {}
+
+resources:
+  requests:
+    cpu: "500m"
+    memory: "1Gi"
+  limits:
+    cpu: "2000m"
+    memory: "2Gi"
+
+env:
+  RAG_CORE_URL: "http://rag-core-service.agentic-zero-trust.svc.cluster.local:8002"
+  OPA_URL: "http://opa-service.agentic-zero-trust.svc.cluster.local:8181"
+  ENVIRONMENT: "production"
+  LOG_LEVEL: "INFO"
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector.agentic-zero-trust.svc.cluster.local:4317"
+  OTEL_SERVICE_NAME: "agent-runtime"
+  SPIFFE_ENDPOINT_SOCKET: "unix:///run/spire/sockets/agent.sock"
+  AGENT_SESSION_TTL_SECONDS: "3600"
+  MAX_TOOL_CALL_DEPTH: "5"
+  SANDBOX_RUNTIME_CLASS: "gvisor"
+
+serviceAccount:
+  create: true
+  name: "agent-runtime-sa"
+  annotations:
+    azure.workload.identity/client-id: "REPLACE_WITH_AGENT_RUNTIME_MANAGED_IDENTITY_CLIENT_ID"
+
+podAnnotations:
+  azure.workload.identity/use: "true"
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8001"
+  prometheus.io/path: "/metrics"
+
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 8
+  targetCPUUtilizationPercentage: 60
+  targetMemoryUtilizationPercentage: 75
+
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: 8001
+  initialDelaySeconds: 20
+  periodSeconds: 20
+  failureThreshold: 3
+  timeoutSeconds: 5
+
+readinessProbe:
+  httpGet:
+    path: /readyz
+    port: 8001
+  initialDelaySeconds: 15
+  periodSeconds: 10
+  failureThreshold: 3
+  timeoutSeconds: 5
+
+tolerations: []
+
+nodeSelector:
+  kubernetes.io/os: linux
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 2000
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+runtimeClassName: gvisor

@@ -1,0 +1,179 @@
+{
+  "title": "Zero Trust SLO Burn Rate",
+  "uid": "zt-slo-burn-v1",
+  "schemaVersion": 36,
+  "version": 1,
+  "refresh": "1m",
+  "time": {"from": "now-24h", "to": "now"},
+  "templating": {"list": []},
+  "annotations": {"list": []},
+  "panels": [
+    {
+      "id": 1,
+      "title": "Error Budget Remaining",
+      "type": "gauge",
+      "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0},
+      "targets": [
+        {
+          "expr": "1 - (sum(rate(http_requests_total{job=\"api\",status=~\"5..\"}[30d])) / sum(rate(http_requests_total{job=\"api\"}[30d]))) / (1 - 0.999)",
+          "legendFormat": "Error Budget Remaining",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "yellow", "value": 0.25},
+              {"color": "green", "value": 0.5}
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"]},
+        "orientation": "auto",
+        "showThresholdLabels": true,
+        "showThresholdMarkers": true
+      }
+    },
+    {
+      "id": 2,
+      "title": "Burn Rate 1h",
+      "type": "stat",
+      "gridPos": {"h": 8, "w": 6, "x": 6, "y": 0},
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{job=\"api\",status=~\"5..\"}[1h])) / sum(rate(http_requests_total{job=\"api\"}[1h])) / (1 - 0.999)",
+          "legendFormat": "1h Burn Rate",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 2,
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 1},
+              {"color": "red", "value": 14.4}
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"]},
+        "orientation": "auto",
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 3,
+      "title": "Burn Rate 6h",
+      "type": "stat",
+      "gridPos": {"h": 8, "w": 6, "x": 12, "y": 0},
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{job=\"api\",status=~\"5..\"}[6h])) / sum(rate(http_requests_total{job=\"api\"}[6h])) / (1 - 0.999)",
+          "legendFormat": "6h Burn Rate",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 2,
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 1},
+              {"color": "red", "value": 6}
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"]},
+        "orientation": "auto",
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 4,
+      "title": "Availability (30d Rolling)",
+      "type": "gauge",
+      "gridPos": {"h": 8, "w": 6, "x": 18, "y": 0},
+      "targets": [
+        {
+          "expr": "1 - sum(rate(http_requests_total{job=\"api\",status=~\"5..\"}[30d])) / sum(rate(http_requests_total{job=\"api\"}[30d]))",
+          "legendFormat": "Availability",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0.99,
+          "max": 1,
+          "decimals": 4,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "yellow", "value": 0.998},
+              {"color": "green", "value": 0.999}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "Error Budget Burn Alert Timeline",
+      "type": "timeseries",
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 8},
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{job=\"api\",status=~\"5..\"}[1h])) / sum(rate(http_requests_total{job=\"api\"}[1h])) / (1 - 0.999)",
+          "legendFormat": "1h burn rate",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(http_requests_total{job=\"api\",status=~\"5..\"}[6h])) / sum(rate(http_requests_total{job=\"api\"}[6h])) / (1 - 0.999)",
+          "legendFormat": "6h burn rate",
+          "refId": "B"
+        },
+        {
+          "expr": "14.4",
+          "legendFormat": "Fast burn threshold (14.4x)",
+          "refId": "C"
+        },
+        {
+          "expr": "6",
+          "legendFormat": "Slow burn threshold (6x)",
+          "refId": "D"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {"mode": "palette-classic"}
+        }
+      },
+      "options": {
+        "tooltip": {"mode": "multi"},
+        "legend": {"displayMode": "list", "placement": "bottom"}
+      }
+    }
+  ]
+}

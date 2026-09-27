@@ -1,0 +1,56 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://agentic-zero-trust/identity/registry/agent-profile",
+  "title": "Agent Identity Profile",
+  "description": "Schema for agent identity registry entries in the zero trust platform.",
+  "type": "object",
+  "required": ["agent_id", "name", "tier", "svid_uri"],
+  "properties": {
+    "agent_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*-v[0-9]+$",
+      "description": "Unique agent identifier, format: <name>-v<version>"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "tier": {
+      "type": "string",
+      "enum": ["T0", "T1", "T2"],
+      "description": "Access tier: T0=minimal, T1=standard, T2=privileged"
+    },
+    "svid_uri": {
+      "type": "string",
+      "pattern": "^spiffe://zero-trust\\.example\\.com/agent/[a-z0-9-]+$",
+      "description": "SPIFFE SVID URI for this agent"
+    },
+    "allowed_resources": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Resources this agent is permitted to access"
+    },
+    "max_delegation_depth": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 2,
+      "description": "Maximum depth of delegation chains"
+    },
+    "allowed_tools": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Tools this agent is permitted to call"
+    },
+    "max_budget_usd_per_session": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Maximum spending per session in USD"
+    },
+    "opa_policy_path": {
+      "type": "string",
+      "description": "OPA package path for agent-specific policy"
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,223 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: zero-trust-sync-waves
+  namespace: argocd
+spec:
+  generators:
+    - list:
+        elements:
+          - name: namespace-rbac-secrets
+            path: deploy/manifests/wave-0
+            wave: "0"
+            description: "Namespace, RBAC roles, ClusterRoles, and External Secrets configuration"
+          - name: opa-postgres
+            path: deploy/manifests/wave-1
+            wave: "1"
+            description: "OPA policy engine and PostgreSQL database with pgvector"
+          - name: rag-agent-runtime
+            path: deploy/manifests/wave-2
+            wave: "2"
+            description: "RAG Core pipeline and Agent Runtime sandboxed execution service"
+          - name: api
+            path: deploy/manifests/wave-3
+            wave: "3"
+            description: "API Gateway service and Ingress configuration"
+          - name: monitoring
+            path: deploy/manifests/wave-4
+            wave: "4"
+            description: "Prometheus, Grafana, OTEL collector, and alert rules"
+  template:
+    metadata:
+      name: "zt-{{name}}"
+      namespace: argocd
+      annotations:
+        argocd.argoproj.io/sync-wave: "{{wave}}"
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/kogunlowo123/agentic-zero-trust-platform
+        targetRevision: main
+        path: "{{path}}"
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: agentic-zero-trust
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
+        retry:
+          limit: 3
+          backoff:
+            duration: 10s
+            factor: 2
+            maxDuration: 2m
+---
+# Wave 0: Namespace, RBAC, Secrets — must be deployed before any workload
+# These resources have no dependencies and must exist before anything else
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: zt-wave0-namespace-rbac
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/kogunlowo123/agentic-zero-trust-platform
+    targetRevision: main
+    path: deploy/manifests/wave-0
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: agentic-zero-trust
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+---
+# Wave 1: OPA Engine and PostgreSQL — infrastructure layer
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: zt-wave1-opa-postgres
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/kogunlowo123/agentic-zero-trust-platform
+    targetRevision: main
+    path: deploy/manifests/wave-1
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: agentic-zero-trust
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 15s
+        factor: 2
+        maxDuration: 3m
+---
+# Wave 2: RAG Core and Agent Runtime — application services depending on Wave 1
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: zt-wave2-rag-agent-runtime
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/kogunlowo123/agentic-zero-trust-platform
+    targetRevision: main
+    path: deploy/helm/agent-runtime
+    helm:
+      valueFiles:
+        - values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: agentic-zero-trust
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m
+---
+# Wave 3: API Service — depends on OPA, RAG, and Agent Runtime
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: zt-wave3-api
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/kogunlowo123/agentic-zero-trust-platform
+    targetRevision: main
+    path: deploy/helm/api
+    helm:
+      valueFiles:
+        - values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: agentic-zero-trust
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m
+---
+# Wave 4: Monitoring — Prometheus, Grafana, OTEL Collector, AlertRules
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: zt-wave4-monitoring
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/kogunlowo123/agentic-zero-trust-platform
+    targetRevision: main
+    path: deploy/manifests/wave-4
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: agentic-zero-trust
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 2m

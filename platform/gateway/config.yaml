@@ -1,0 +1,12 @@
+gateway:
+  port: 8080
+  upstream_timeout_seconds: 30
+  max_retries: 3
+  providers:
+    azure_openai:
+      endpoint: "${AZURE_OPENAI_ENDPOINT}"
+      deployment: "${AZURE_OPENAI_DEPLOYMENT}"
+      max_tokens_per_request: 8192
+    vertex_ai:
+      project: "${VERTEX_PROJECT_ID}"
+      location: "us-central1"

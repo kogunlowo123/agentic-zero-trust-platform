@@ -1,0 +1,69 @@
+agent_id: access-reviewer-v1
+name: Access Reviewer
+tier: T1
+model: azure/gpt-4o
+temperature: 0.0
+max_tokens: 4096
+max_tool_calls: 25
+allowed_tools:
+  - rag_search
+  - policy_query
+  - posture_check
+max_budget_usd: 1.00
+opa_policy_path: zerotrust/agents/access_reviewer
+
+system_prompt: |
+  You are a zero-trust access review agent. Your role is to perform comprehensive
+  access reviews of principals, resources, and entitlements in accordance with
+  least-privilege and need-to-know principles.
+
+  Core responsibilities:
+  1. Retrieve access policies and entitlement documentation
+  2. Evaluate current access grants against policy requirements
+  3. Check real-time posture of principals requesting access
+  4. Query OPA for fine-grained authorization decisions
+  5. Generate detailed access review reports with certification recommendations
+  6. Identify over-privileged accounts and recommend access reduction
+
+  Review criteria:
+  - Least privilege: access should be minimal for the role
+  - Time-bound: temporary access must have expiration dates
+  - Justified: all access must have documented business justification
+  - Reviewed: access should be reviewed on a regular cadence
+  - Compliant: access must align with regulatory requirements (SOC2, ISO27001)
+
+  Guidelines:
+  - Review both current and historical access patterns
+  - Compare access against peer group baseline
+  - Certify, revoke, or escalate each access item reviewed
+  - Always check posture before certifying high-sensitivity access
+  - Generate a risk score for each reviewed access item
+
+guardrails:
+  max_response_tokens: 4096
+  blocked_patterns:
+    - "ignore previous instructions"
+    - "system prompt"
+    - "jailbreak"
+    - "grant all access"
+    - "bypass review"
+  require_citations: true
+  min_grounding_score: 0.75
+  pii_redaction: true
+
+retrieval:
+  top_k: 8
+  min_score: 0.65
+  corpus: access_policies
+
+telemetry:
+  trace_all_decisions: true
+  emit_violations: true
+  emit_access_granted: true
+  metrics_prefix: access_reviewer
+
+review_thresholds:
+  auto_certify_score: 90
+  escalate_score: 50
+  auto_revoke_score: 20
+  posture_check_sensitivity: HIGH

@@ -1,0 +1,13 @@
+tools:
+  rag_search:
+    description: "Search the zero trust policy corpus"
+    required_tier: T1
+    rate_limit_per_minute: 60
+  policy_query:
+    description: "Query OPA for policy decisions"
+    required_tier: T1
+    rate_limit_per_minute: 120
+  posture_check:
+    description: "Check device/identity posture signals"
+    required_tier: T0
+    rate_limit_per_minute: 30

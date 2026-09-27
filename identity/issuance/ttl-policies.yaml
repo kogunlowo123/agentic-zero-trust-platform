@@ -1,0 +1,39 @@
+# SVID TTL Policies by Agent Tier
+# Lower tier = shorter-lived SVIDs (higher rotation frequency)
+# Refresh occurs proactively before expiry to avoid authentication gaps
+
+svid_ttls:
+  T0_agents:
+    ttl_seconds: 3600        # 1 hour
+    description: "Minimal-trust agents with read-only access"
+    refresh_before_expiry_seconds: 300   # Refresh 5 minutes before expiry
+
+  T1_agents:
+    ttl_seconds: 1800        # 30 minutes
+    description: "Standard-trust agents with read/write access"
+    refresh_before_expiry_seconds: 300
+
+  T2_agents:
+    ttl_seconds: 900         # 15 minutes
+    description: "Privileged agents — shortest TTL for highest security"
+    refresh_before_expiry_seconds: 180   # Refresh 3 minutes before expiry
+
+# Emergency SVIDs (break-glass scenarios)
+emergency_svid:
+  ttl_seconds: 14400         # 4 hours
+  requires_approval: true
+  audit_required: true
+
+# Batch operation SVIDs (data pipelines, Dagster jobs)
+batch_svid:
+  ttl_seconds: 7200          # 2 hours
+  requires_pre_registration: true
+
+# Default fallback TTL (if tier not specified)
+default_ttl_seconds: 1800
+
+# Rotation jitter (adds ±10% to prevent thundering herd)
+rotation_jitter_percent: 10
+
+# Maximum number of concurrent valid SVIDs per agent identity
+max_concurrent_svids_per_agent: 3

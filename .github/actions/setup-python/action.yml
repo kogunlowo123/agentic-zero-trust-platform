@@ -1,0 +1,62 @@
+name: Setup Python Environment
+description: >
+  Sets up Python 3.12 with uv package manager, configures the uv dependency
+  cache, and runs uv sync to install all project dependencies.
+
+inputs:
+  python-version:
+    description: Python version to use
+    required: false
+    default: "3.12"
+  working-directory:
+    description: Working directory in which to run uv sync
+    required: false
+    default: "."
+  sync-args:
+    description: Extra arguments passed to uv sync
+    required: false
+    default: "--all-extras --frozen"
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Python ${{ inputs.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: "latest"
+        enable-cache: true
+        cache-dependency-glob: |
+          **/uv.lock
+          **/pyproject.toml
+
+    - name: Cache uv virtualenv
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/uv
+          ${{ inputs.working-directory }}/.venv
+        key: uv-${{ runner.os }}-py${{ inputs.python-version }}-${{ hashFiles('**/uv.lock', '**/pyproject.toml') }}
+        restore-keys: |
+          uv-${{ runner.os }}-py${{ inputs.python-version }}-
+          uv-${{ runner.os }}-
+
+    - name: Install Python dependencies
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: uv sync ${{ inputs.sync-args }}
+
+    - name: Verify installation
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        echo "Python: $(uv run python --version)"
+        echo "uv: $(uv --version)"
+        uv run python -c "import sys; print(f'Site packages: {sys.path}')"

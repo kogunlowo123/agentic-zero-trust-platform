@@ -1,0 +1,163 @@
+version: "3.9"
+
+networks:
+  zero-trust-net:
+    driver: bridge
+
+volumes:
+  postgres-data:
+    driver: local
+  opensearch-data:
+    driver: local
+  redis-data:
+    driver: local
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: services/api/Dockerfile
+    image: agentic-zero-trust/api:latest
+    container_name: zt-api
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - OPA_URL=http://opa:8181
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-ztplatform}:${POSTGRES_PASSWORD:-ztplatform_secret}@postgres:5432/${POSTGRES_DB:-zerotrust_db}
+      - REDIS_URL=redis://redis:6379/0
+      - OPENSEARCH_URL=http://opensearch:9200
+      - OTEL_ENDPOINT=http://otel-collector:4317
+    depends_on:
+      postgres:
+        condition: service_healthy
+      opa:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      opensearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - zero-trust-net
+    restart: unless-stopped
+
+  opa:
+    image: openpolicyagent/opa:latest
+    container_name: zt-opa
+    ports:
+      - "8181:8181"
+    volumes:
+      - ./policies:/policies:ro
+    command:
+      - run
+      - --server
+      - --addr
+      - 0.0.0.0:8181
+      - --log-format
+      - json
+      - --log-level
+      - info
+      - /policies
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8181/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - zero-trust-net
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16
+    container_name: zt-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-zerotrust_db}
+      POSTGRES_USER: ${POSTGRES_USER:-ztplatform}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ztplatform_secret}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ztplatform} -d ${POSTGRES_DB:-zerotrust_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - zero-trust-net
+    restart: unless-stopped
+
+  opensearch:
+    image: opensearchproject/opensearch:2.13.0
+    container_name: zt-opensearch
+    ports:
+      - "9200:9200"
+      - "9600:9600"
+    environment:
+      - discovery.type=single-node
+      - DISABLE_SECURITY_PLUGIN=true
+      - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
+      - bootstrap.memory_lock=true
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - opensearch-data:/usr/share/opensearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health | grep -vq '\"status\":\"red\"'"]
+      interval: 30s
+      timeout: 15s
+      retries: 10
+      start_period: 60s
+    networks:
+      - zero-trust-net
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: zt-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - zero-trust-net
+    restart: unless-stopped
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: zt-otel-collector
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+      - "8888:8888"
+    volumes:
+      - ./configs/otel-collector.yaml:/etc/otel-collector-config.yaml:ro
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    depends_on:
+      - api
+    networks:
+      - zero-trust-net
+    restart: unless-stopped

@@ -1,0 +1,15 @@
+apiVersion: v2
+name: agent-runtime
+description: Agentic Zero Trust Platform — Agent Runtime Service
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - zero-trust
+  - agent
+  - runtime
+  - sandbox
+home: https://github.com/kogunlowo123/agentic-zero-trust-platform
+maintainers:
+  - name: kogunlowo123
+    url: https://github.com/kogunlowo123
