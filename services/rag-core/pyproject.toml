@@ -9,7 +9,7 @@ dependencies = [
     "opensearch-py>=2.4",
     "httpx>=0.27",
     "pydantic>=2.7",
-    "pydantic-settings>=2.3",
+    "pydantic-settings>=2.15.0",
     "numpy",
     "torch",
     "transformers",
