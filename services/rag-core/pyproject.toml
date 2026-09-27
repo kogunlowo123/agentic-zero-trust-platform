@@ -20,7 +20,7 @@ dependencies = [
     "structlog>=24.1",
     "pypdf>=4.0",
     "beautifulsoup4>=4.12",
-    "langdetect>=1.0",
+    "langdetect>=1.0.9",
     "pyyaml>=6.0",
 ]
 
